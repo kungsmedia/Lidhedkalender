@@ -30,12 +30,17 @@ const FIREBASE_CONFIG = {
   --border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.16)
 }}
 body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh}
-#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}
-.login-box{background:var(--surface);border:.5px solid var(--border2);border-radius:var(--radius);
+
+.fullscreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}
+.center-box{background:var(--surface);border:.5px solid var(--border2);border-radius:var(--radius);
   padding:2.5rem 2rem;width:100%;max-width:380px;text-align:center}
-.login-box h1{font-size:21px;font-weight:500;margin-bottom:.3rem}
-.login-box p{font-size:13px;color:var(--text2);margin-bottom:1.25rem;line-height:1.5}
+.center-box h1{font-size:21px;font-weight:500;margin-bottom:.3rem}
+.center-box p{font-size:13px;color:var(--text2);margin-bottom:1.25rem;line-height:1.5}
 .icon{font-size:40px;margin-bottom:1rem}
+.spinner{width:32px;height:32px;border:2px solid var(--border2);border-top-color:var(--blue);
+  border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 1rem}
+@keyframes spin{to{transform:rotate(360deg)}}
+
 #app{display:none;flex-direction:column;min-height:100vh}
 .topbar{background:var(--surface);border-bottom:.5px solid var(--border);
   padding:0 1.25rem;display:flex;align-items:center;gap:8px;height:52px;
@@ -45,7 +50,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   padding:5px 10px;font-size:13px;cursor:pointer;color:var(--text);font-family:var(--font)}
 .nav-btn:hover{background:var(--surface2)}
 .week-label{font-size:13px;font-weight:500;min-width:155px;text-align:center}
-.sync-dot{width:8px;height:8px;border-radius:50%;background:#ccc;flex-shrink:0;transition:background .3s;cursor:help}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#ccc;flex-shrink:0;transition:background .3s}
 .sync-dot.live{background:#4CAF50}
 .main{display:flex;flex:1;overflow:hidden}
 .sidebar{width:210px;flex-shrink:0;background:var(--surface);border-right:.5px solid var(--border);
@@ -81,7 +86,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .hcell{height:44px;border-bottom:.5px solid var(--border);border-right:.5px solid var(--border);
   cursor:pointer;position:relative;transition:background .1s}
 .hcell:hover{background:var(--surface2)}
-.hcell:last-child{border-bottom:none}
 .eblock{position:absolute;left:2px;right:2px;border-radius:5px;padding:2px 5px;
   font-size:11px;font-weight:500;cursor:pointer;overflow:hidden;z-index:2;line-height:1.3;color:#fff}
 .eblock:hover{opacity:.82}
@@ -105,7 +109,6 @@ button:active{transform:scale(.98)}
 button.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
 button.primary:hover{background:#0C447C}
 button.danger{background:#FCEBEB;color:#791F1F;border-color:#F09595}
-button.danger:hover{background:#F7C1C1}
 textarea{width:100%;min-height:56px;resize:vertical}
 .field{margin-bottom:10px}
 .field label{font-size:12px;color:var(--text2);display:block;margin-bottom:4px}
@@ -113,31 +116,40 @@ textarea{width:100%;min-height:56px;resize:vertical}
 .msg{font-size:13px;min-height:18px;margin:6px 0}
 .msg.err{color:#A32D2D}
 .msg.ok{color:#3B6D11}
-.loading{min-height:100vh;display:flex;align-items:center;justify-content:center;
-  font-size:14px;color:var(--text2);flex-direction:column;gap:12px}
-.spinner{width:28px;height:28px;border:2px solid var(--border2);border-top-color:var(--blue);
-  border-radius:50%;animation:spin .7s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
 
-<!-- LADDAR -->
-<div class="loading" id="loading-screen">
-  <div class="spinner"></div>
-  <span>Ansluter till Firebase...</span>
+<!-- LADDNING -->
+<div class="fullscreen" id="screen-loading">
+  <div class="center-box">
+    <div class="spinner"></div>
+    <p style="color:var(--text2);font-size:14px">Ansluter till Firebase...</p>
+  </div>
 </div>
 
 <!-- LOGIN -->
-<div id="login-screen" style="display:none">
-  <div class="login-box">
+<div class="fullscreen" id="screen-login" style="display:none">
+  <div class="center-box">
     <div class="icon">📅</div>
     <h1>Familjekalender</h1>
-    <p>Ange familjens lösenord för att fortsätta.<br>
+    <p>Ange familjens lösenord.<br>
       <span style="font-size:11px;color:var(--text3)">Standardlösenord: familj123</span></p>
-    <div class="field"><input type="password" id="pw-input" placeholder="Lösenord" style="width:100%;margin-bottom:8px" /></div>
+    <div class="field">
+      <input type="password" id="pw-input" placeholder="Lösenord" style="width:100%;margin-bottom:8px" />
+    </div>
     <button class="primary" style="width:100%" onclick="tryLogin()">Logga in</button>
     <div class="msg err" id="login-err"></div>
+  </div>
+</div>
+
+<!-- FEL -->
+<div class="fullscreen" id="screen-error" style="display:none">
+  <div class="center-box">
+    <div class="icon">⚠️</div>
+    <h1>Kunde inte ansluta</h1>
+    <p id="error-msg">Ett fel uppstod vid anslutning till Firebase.</p>
+    <button class="primary" style="width:100%;margin-top:1rem" onclick="location.reload()">Försök igen</button>
   </div>
 </div>
 
@@ -149,7 +161,7 @@ textarea{width:100%;min-height:56px;resize:vertical}
     <span class="week-label" id="week-label"></span>
     <button class="nav-btn" onclick="nextWeek()">&#8594;</button>
     <button class="nav-btn" onclick="goToday()">Idag</button>
-    <div class="sync-dot" id="sync-dot" title="Grön = ansluten till Firebase"></div>
+    <div class="sync-dot" id="sync-dot" title="Firebase-anslutning"></div>
     <button class="nav-btn" onclick="openSettings()">⚙ Inställningar</button>
     <button class="nav-btn" onclick="logout()">Logga ut</button>
   </div>
@@ -160,7 +172,7 @@ textarea{width:100%;min-height:56px;resize:vertical}
         <div id="member-list"></div>
         <div class="add-row" style="margin-top:8px">
           <input type="text" id="new-name" placeholder="Nytt namn" maxlength="20" />
-          <button onclick="addMember()" title="Lägg till">+</button>
+          <button onclick="addMember()">+</button>
         </div>
       </div>
       <div>
@@ -181,7 +193,7 @@ textarea{width:100%;min-height:56px;resize:vertical}
 <!-- EVENT MODAL -->
 <div class="overlay" id="ev-overlay">
   <div class="modal">
-    <h2 id="ev-title-hdr">Ny händelse <button class="close-btn" onclick="closeEv()">&#x2715;</button></h2>
+    <h2 id="ev-hdr">Ny händelse <button class="close-btn" onclick="closeEv()">&#x2715;</button></h2>
     <div class="field"><label>Titel</label><input type="text" id="ev-title" placeholder="t.ex. Fotbollsträning" /></div>
     <div class="field"><label>Person</label><select id="ev-person"></select></div>
     <div class="field"><label>Datum</label><input type="date" id="ev-date" /></div>
@@ -204,9 +216,9 @@ textarea{width:100%;min-height:56px;resize:vertical}
 <div class="overlay" id="set-overlay">
   <div class="modal">
     <h2>Inställningar <button class="close-btn" onclick="closeSettings()">&#x2715;</button></h2>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:1rem">Lösenordet sparas till Firebase och gäller direkt på alla enheter.</p>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:1rem">Lösenordet sparas till Firebase och gäller på alla enheter.</p>
     <div class="field"><label>Nytt lösenord</label><input type="password" id="new-pw" placeholder="Minst 4 tecken" /></div>
-    <div class="field"><label>Bekräfta lösenord</label><input type="password" id="new-pw2" placeholder="Upprepa" /></div>
+    <div class="field"><label>Bekräfta</label><input type="password" id="new-pw2" placeholder="Upprepa" /></div>
     <div class="msg" id="pw-msg"></div>
     <div class="mactions">
       <div></div>
@@ -221,9 +233,9 @@ textarea{width:100%;min-height:56px;resize:vertical}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
-const PALETTE   = ['#E05A5A','#E07B2A','#D4AC0D','#4CAF50','#2196F3','#9C27B0','#00BCD4','#FF5BA3','#3B8F5A','#5C6BC0'];
-const DAYS      = ['Sön','Mån','Tis','Ons','Tor','Fre','Lör'];
-const HOURS     = Array.from({length:24},(_,i)=>i);
+const PALETTE    = ['#E05A5A','#E07B2A','#D4AC0D','#4CAF50','#2196F3','#9C27B0','#00BCD4','#FF5BA3','#3B8F5A','#5C6BC0'];
+const DAYS       = ['Sön','Mån','Tis','Ons','Tor','Fre','Lör'];
+const HOURS      = Array.from({length:24},(_,i)=>i);
 const DEFAULT_PW = 'familj123';
 
 let db, dbRef;
@@ -233,7 +245,14 @@ let selectedColor = PALETTE[0];
 let editingEvId = null;
 let currentWeekStart = getMonday(new Date());
 let activeMembers = new Set();
-let firebaseReady = false;
+let appStarted = false;
+
+function show(id) {
+  ['screen-loading','screen-login','screen-error','app'].forEach(s => {
+    const el = document.getElementById(s);
+    if (el) el.style.display = s === id ? (s === 'app' ? 'flex' : 'flex') : 'none';
+  });
+}
 
 function initFirebase() {
   try {
@@ -241,73 +260,100 @@ function initFirebase() {
     db    = firebase.database();
     dbRef = db.ref('familjekalender');
 
-    db.ref('.info/connected').on('value', s => {
-      const live = !!s.val();
-      document.getElementById('sync-dot').classList.toggle('live', live);
-      if (!firebaseReady && live) {
-        firebaseReady = true;
+    // Timeout — om Firebase inte svarar inom 8 sekunder, visa inloggning ändå
+    const timeout = setTimeout(() => {
+      if (!appStarted) {
+        console.warn('Firebase timeout — visar login ändå');
+        localPw = DEFAULT_PW;
+        members = [];
+        events  = {};
+        appStarted = true;
+        show('screen-login');
       }
+    }, 8000);
+
+    // Anslutningsstatus
+    db.ref('.info/connected').on('value', snap => {
+      const live = !!snap.val();
+      const dot = document.getElementById('sync-dot');
+      if (dot) dot.classList.toggle('live', live);
     });
 
-    dbRef.on('value', snap => {
-      const d      = snap.val() || {};
-      members      = d.members      || [];
-      events       = d.events       || {};
-      nextMemberId = d.nextMemberId || members.length + 1;
-      localPw      = d.password     || DEFAULT_PW;
+    // Lyssna på data — triggar även när databasen är tom (null)
+    dbRef.once('value').then(snap => {
+      clearTimeout(timeout);
+      const d = snap.val();
 
-      // Dölj laddningsskärmen och visa login första gången
-      document.getElementById('loading-screen').style.display = 'none';
-
-      if (members.length === 0) { seedMembers(); return; }
-      activeMembers = new Set(members.map(m => m.id));
-      if (document.getElementById('app').style.display === 'flex') renderAll();
-    }, err => {
-      // Om Firebase-anslutning misslyckas
-      document.getElementById('loading-screen').style.display = 'none';
-      document.getElementById('login-screen').style.display   = 'flex';
+      if (!d) {
+        // Databasen är tom — skapa startdata
+        const seed = ['Mamma','Pappa','Ella','Noah'].map((n,i) => ({id:i+1,name:n,color:PALETTE[i]}));
+        nextMemberId = seed.length + 1;
+        dbRef.set({
+          members: seed,
+          events: {},
+          password: DEFAULT_PW,
+          nextMemberId
+        }).then(() => {
+          members  = seed;
+          localPw  = DEFAULT_PW;
+          activeMembers = new Set(members.map(m => m.id));
+          appStarted = true;
+          show('screen-login');
+          // Starta realtidslyssning
+          startRealtimeListener();
+        });
+      } else {
+        members      = d.members      || [];
+        events       = d.events       || {};
+        nextMemberId = d.nextMemberId || members.length + 1;
+        localPw      = d.password     || DEFAULT_PW;
+        activeMembers = new Set(members.map(m => m.id));
+        appStarted = true;
+        show('screen-login');
+        // Starta realtidslyssning
+        startRealtimeListener();
+      }
+    }).catch(err => {
+      clearTimeout(timeout);
       console.error('Firebase fel:', err);
+      document.getElementById('error-msg').textContent = 'Fel: ' + err.message;
+      show('screen-error');
     });
-
-    // Visa login efter max 5 sekunder (timeout)
-    setTimeout(() => {
-      if (document.getElementById('loading-screen').style.display !== 'none') {
-        document.getElementById('loading-screen').style.display = 'none';
-        document.getElementById('login-screen').style.display   = 'flex';
-      }
-    }, 5000);
 
   } catch(e) {
-    document.getElementById('loading-screen').style.display = 'none';
-    document.getElementById('login-screen').style.display   = 'flex';
     console.error(e);
+    document.getElementById('error-msg').textContent = 'Konfigurationsfel: ' + e.message;
+    show('screen-error');
   }
+}
+
+function startRealtimeListener() {
+  dbRef.on('value', snap => {
+    const d = snap.val();
+    if (!d) return;
+    members      = d.members      || [];
+    events       = d.events       || {};
+    nextMemberId = d.nextMemberId || members.length + 1;
+    localPw      = d.password     || DEFAULT_PW;
+    if (document.getElementById('app').style.display === 'flex') renderAll();
+  });
 }
 
 function push(obj) { if (dbRef) dbRef.update(obj); }
 
-function seedMembers() {
-  const seed = ['Mamma','Pappa','Ella','Noah'].map((n,i)=>({id:i+1,name:n,color:PALETTE[i]}));
-  nextMemberId = seed.length + 1;
-  dbRef.set({ members:seed, events:{}, password:DEFAULT_PW, nextMemberId });
-}
-
 /* AUTH */
 function tryLogin() {
   if (document.getElementById('pw-input').value === localPw) {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app').style.display          = 'flex';
-    document.getElementById('pw-input').value             = '';
-    document.getElementById('login-err').textContent      = '';
+    show('app');
+    document.getElementById('pw-input').value = '';
+    document.getElementById('login-err').textContent = '';
+    activeMembers = new Set(members.map(m => m.id));
     renderAll();
   } else {
     document.getElementById('login-err').textContent = 'Fel lösenord – försök igen.';
   }
 }
-function logout() {
-  document.getElementById('app').style.display          = 'none';
-  document.getElementById('login-screen').style.display = 'flex';
-}
+function logout() { show('screen-login'); }
 
 /* INSTÄLLNINGAR */
 function openSettings()  { document.getElementById('set-overlay').classList.add('open'); }
@@ -321,9 +367,9 @@ function savePw() {
   const p2 = document.getElementById('new-pw2').value;
   const el = document.getElementById('pw-msg');
   el.className = 'msg err';
-  if (!p1)         { el.textContent = 'Ange ett nytt lösenord.'; return; }
-  if (p1 !== p2)   { el.textContent = 'Lösenorden matchar inte.'; return; }
-  if (p1.length<4) { el.textContent = 'Minst 4 tecken krävs.'; return; }
+  if (!p1)         { el.textContent='Ange ett nytt lösenord.'; return; }
+  if (p1 !== p2)   { el.textContent='Lösenorden matchar inte.'; return; }
+  if (p1.length<4) { el.textContent='Minst 4 tecken krävs.'; return; }
   push({ password: p1 });
   localPw = p1;
   el.className = 'msg ok';
@@ -363,7 +409,9 @@ function getMonday(d) {
 function prevWeek() { currentWeekStart.setDate(currentWeekStart.getDate()-7); renderCalendar(); }
 function nextWeek() { currentWeekStart.setDate(currentWeekStart.getDate()+7); renderCalendar(); }
 function goToday()  { currentWeekStart=getMonday(new Date()); renderCalendar(); }
-function weekDays() { return Array.from({length:7},(_,i)=>{ const d=new Date(currentWeekStart); d.setDate(d.getDate()+i); return d; }); }
+function weekDays() {
+  return Array.from({length:7},(_,i)=>{ const d=new Date(currentWeekStart); d.setDate(d.getDate()+i); return d; });
+}
 function isoDate(d) { return d.toISOString().slice(0,10); }
 function isToday(d) { return d.toDateString()===new Date().toDateString(); }
 
@@ -430,7 +478,7 @@ function renderCalendar() {
 function openNewEv(dateStr,hour) {
   if(members.length===0){alert('Lägg till minst en person först!');return;}
   editingEvId=null;
-  document.getElementById('ev-title-hdr').innerHTML='Ny händelse <button class="close-btn" onclick="closeEv()">&#x2715;</button>';
+  document.getElementById('ev-hdr').innerHTML='Ny händelse <button class="close-btn" onclick="closeEv()">&#x2715;</button>';
   document.getElementById('ev-title').value='';
   document.getElementById('ev-date').value=dateStr;
   document.getElementById('ev-start').value=`${String(hour).padStart(2,'0')}:00`;
@@ -444,7 +492,7 @@ function openNewEv(dateStr,hour) {
 function openEditEv(id) {
   const ev=events[id]; if(!ev)return;
   editingEvId=id;
-  document.getElementById('ev-title-hdr').innerHTML='Redigera händelse <button class="close-btn" onclick="closeEv()">&#x2715;</button>';
+  document.getElementById('ev-hdr').innerHTML='Redigera händelse <button class="close-btn" onclick="closeEv()">&#x2715;</button>';
   document.getElementById('ev-title').value=ev.title;
   document.getElementById('ev-date').value=ev.date;
   document.getElementById('ev-start').value=ev.start;
