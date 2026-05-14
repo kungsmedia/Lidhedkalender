@@ -2,7 +2,7 @@
 <html lang="sv">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
 <title>Familjekalender</title>
 <script>
 const FIREBASE_CONFIG = {
@@ -22,94 +22,190 @@ const FIREBASE_CONFIG = {
   --text:#1a1a18;--text2:#6b6b67;--text3:#a0a09a;
   --border:rgba(0,0,0,.10);--border2:rgba(0,0,0,.18);
   --radius:10px;--radius-sm:6px;
-  --font:'Segoe UI',system-ui,sans-serif;--blue:#185FA5
+  --font:'Segoe UI',system-ui,sans-serif;--blue:#185FA5;
+  --bottom-nav:60px;
 }
 @media(prefers-color-scheme:dark){:root{
   --bg:#181816;--surface:#222220;--surface2:#2a2a28;
   --text:#f0ede6;--text2:#9a9a94;--text3:#5a5a56;
   --border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.16)
 }}
-body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--font);background:var(--bg);color:var(--text)}
 
-.fullscreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}
+/* SCREENS */
+.screen{position:fixed;inset:0;display:none;flex-direction:column}
+.screen.active{display:flex}
+
+/* LOADING / LOGIN */
+.center-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:1.5rem}
 .center-box{background:var(--surface);border:.5px solid var(--border2);border-radius:var(--radius);
-  padding:2.5rem 2rem;width:100%;max-width:380px;text-align:center}
-.center-box h1{font-size:21px;font-weight:500;margin-bottom:.3rem}
+  padding:2rem 1.5rem;width:100%;max-width:360px;text-align:center}
+.center-box h1{font-size:20px;font-weight:500;margin-bottom:.3rem}
 .center-box p{font-size:13px;color:var(--text2);margin-bottom:1.25rem;line-height:1.5}
-.icon{font-size:40px;margin-bottom:1rem}
-.spinner{width:32px;height:32px;border:2px solid var(--border2);border-top-color:var(--blue);
+.icon{font-size:44px;margin-bottom:.75rem}
+.spinner{width:30px;height:30px;border:2px solid var(--border2);border-top-color:var(--blue);
   border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 1rem}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-#app{display:none;flex-direction:column;min-height:100vh}
+/* TOP BAR */
 .topbar{background:var(--surface);border-bottom:.5px solid var(--border);
-  padding:0 1.25rem;display:flex;align-items:center;gap:8px;height:52px;
-  position:sticky;top:0;z-index:50}
+  padding:0 1rem;display:flex;align-items:center;gap:8px;height:52px;flex-shrink:0;
+  position:relative;z-index:10}
 .topbar h1{font-size:15px;font-weight:500;flex:1}
-.nav-btn{background:none;border:.5px solid var(--border2);border-radius:var(--radius-sm);
-  padding:5px 10px;font-size:13px;cursor:pointer;color:var(--text);font-family:var(--font)}
-.nav-btn:hover{background:var(--surface2)}
-.week-label{font-size:13px;font-weight:500;min-width:155px;text-align:center}
-.sync-dot{width:8px;height:8px;border-radius:50%;background:#ccc;flex-shrink:0;transition:background .3s}
+.topbar-btn{background:none;border:none;cursor:pointer;color:var(--text2);
+  padding:8px;border-radius:var(--radius-sm);font-size:22px;line-height:1;display:flex;align-items:center}
+.topbar-btn:hover{background:var(--surface2)}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#ccc;transition:background .3s;flex-shrink:0}
 .sync-dot.live{background:#4CAF50}
-.main{display:flex;flex:1;overflow:hidden}
-.sidebar{width:210px;flex-shrink:0;background:var(--surface);border-right:.5px solid var(--border);
-  padding:1rem;overflow-y:auto;display:flex;flex-direction:column;gap:1rem}
-.sidebar h2{font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.06em}
-.member-chip{display:flex;align-items:center;gap:7px;padding:5px 6px;border-radius:var(--radius-sm);cursor:pointer;transition:background .1s}
-.member-chip:hover{background:var(--surface2)}
-.member-chip.inactive{opacity:.35}
-.mdot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
-.mname{font-size:13px;flex:1}
-.mdel{background:none;border:none;cursor:pointer;color:var(--text3);font-size:15px;line-height:1;padding:0 2px}
-.mdel:hover{color:#A32D2D}
-.add-row{display:flex;gap:6px}
-.add-row input{flex:1;font-size:13px;padding:6px 8px}
-.swatches{display:flex;flex-wrap:wrap;gap:5px}
-.swatch{width:20px;height:20px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .1s}
-.swatch:hover{transform:scale(1.2)}
-.swatch.sel{border-color:var(--text)}
-.cal-wrap{flex:1;overflow:auto;padding:1rem}
-.week-grid{display:grid;grid-template-columns:48px repeat(7,1fr);
-  border:.5px solid var(--border);border-radius:var(--radius);
-  background:var(--surface);overflow:hidden;min-width:560px}
-.cal-corner{background:var(--surface2);border-bottom:.5px solid var(--border);border-right:.5px solid var(--border)}
-.day-hdr{background:var(--surface2);border-bottom:.5px solid var(--border);border-right:.5px solid var(--border);padding:8px 4px;text-align:center}
-.day-hdr:last-child{border-right:none}
-.dname{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em}
-.dnum{font-size:19px;font-weight:500;margin-top:2px}
-.dnum-today{background:var(--blue);color:#fff;border-radius:50%;width:30px;height:30px;
-  display:flex;align-items:center;justify-content:center;margin:2px auto 0;font-size:15px}
-.tlabel{font-size:10px;color:var(--text3);padding:3px 4px 0;height:44px;
+
+/* WEEK NAV BAR */
+.week-nav{background:var(--surface);border-bottom:.5px solid var(--border);
+  padding:8px 1rem;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.week-nav-btn{background:none;border:.5px solid var(--border2);border-radius:var(--radius-sm);
+  padding:6px 12px;font-size:13px;cursor:pointer;color:var(--text);font-family:var(--font)}
+.week-nav-btn:hover{background:var(--surface2)}
+.week-nav-btn.today{background:var(--blue);color:#fff;border-color:var(--blue)}
+.week-label{flex:1;text-align:center;font-size:13px;font-weight:500}
+
+/* DAY STRIP (mobile week overview) */
+.day-strip{display:flex;background:var(--surface);border-bottom:.5px solid var(--border);flex-shrink:0;overflow-x:auto;scrollbar-width:none}
+.day-strip::-webkit-scrollbar{display:none}
+.day-pill{flex:1;min-width:44px;padding:8px 4px;text-align:center;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.day-pill.active{border-bottom-color:var(--blue)}
+.day-pill-name{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em}
+.day-pill-num{font-size:17px;font-weight:500;margin-top:2px;width:30px;height:30px;
+  display:flex;align-items:center;justify-content:center;margin:2px auto 0;border-radius:50%}
+.day-pill-num.today-num{background:var(--blue);color:#fff}
+.day-pill.active .day-pill-num:not(.today-num){background:var(--surface2)}
+.day-dot-row{display:flex;justify-content:center;gap:2px;margin-top:3px;min-height:6px}
+.day-dot{width:5px;height:5px;border-radius:50%}
+
+/* CALENDAR SCROLL AREA */
+.cal-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+/* DAY VIEW */
+.day-view{display:flex;flex-direction:column}
+.hour-row{display:flex;align-items:stretch;min-height:52px;border-bottom:.5px solid var(--border)}
+.hour-label{width:48px;flex-shrink:0;font-size:11px;color:var(--text3);
+  padding:4px 6px 0;text-align:right}
+.hour-col{flex:1;position:relative;cursor:pointer;transition:background .1s}
+.hour-col:hover{background:var(--surface2)}
+.ev-block{position:absolute;left:4px;right:4px;border-radius:6px;
+  padding:3px 7px;font-size:12px;font-weight:500;color:#fff;
+  overflow:hidden;cursor:pointer;z-index:2;line-height:1.3}
+.ev-block:hover{opacity:.85}
+.ev-block-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ev-block-person{font-size:10px;opacity:.85}
+
+/* WEEK VIEW (desktop) */
+.week-view{display:none}
+@media(min-width:600px){
+  .day-strip{display:none}
+  .day-view{display:none}
+  .week-view{display:block}
+  .week-nav .week-label{font-size:14px}
+}
+.week-grid{display:grid;grid-template-columns:48px repeat(7,1fr);min-width:100%}
+.wg-corner{background:var(--surface2);border-bottom:.5px solid var(--border);border-right:.5px solid var(--border)}
+.wg-dayhdr{background:var(--surface2);border-bottom:.5px solid var(--border);
+  border-right:.5px solid var(--border);padding:6px 4px;text-align:center}
+.wg-dayhdr:last-child{border-right:none}
+.wg-dname{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em}
+.wg-dnum{font-size:16px;font-weight:500;margin-top:1px}
+.wg-dnum-today{background:var(--blue);color:#fff;border-radius:50%;
+  width:28px;height:28px;display:flex;align-items:center;justify-content:center;margin:1px auto 0;font-size:13px}
+.wg-tlabel{font-size:10px;color:var(--text3);padding:3px 4px 0;height:44px;
   display:flex;align-items:flex-start;justify-content:flex-end;
   border-bottom:.5px solid var(--border);border-right:.5px solid var(--border)}
-.hcell{height:44px;border-bottom:.5px solid var(--border);border-right:.5px solid var(--border);
+.wg-hcell{height:44px;border-bottom:.5px solid var(--border);border-right:.5px solid var(--border);
   cursor:pointer;position:relative;transition:background .1s}
-.hcell:hover{background:var(--surface2)}
-.eblock{position:absolute;left:2px;right:2px;border-radius:5px;padding:2px 5px;
-  font-size:11px;font-weight:500;cursor:pointer;overflow:hidden;z-index:2;line-height:1.3;color:#fff}
-.eblock:hover{opacity:.82}
-.etitle{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.eperson{font-size:9px;font-weight:400;opacity:.85}
-.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);
-  z-index:200;align-items:center;justify-content:center;padding:1rem}
-.overlay.open{display:flex}
-.modal{background:var(--surface);border:.5px solid var(--border2);
-  border-radius:var(--radius);padding:1.5rem;width:100%;max-width:420px}
-.modal h2{font-size:15px;font-weight:500;margin-bottom:1.1rem;display:flex;justify-content:space-between;align-items:center}
-.close-btn{background:none;border:none;font-size:18px;cursor:pointer;color:var(--text2)}
+.wg-hcell:hover{background:var(--surface2)}
+.wg-eblock{position:absolute;left:1px;right:1px;border-radius:4px;
+  padding:2px 4px;font-size:10px;font-weight:500;color:#fff;overflow:hidden;z-index:2;line-height:1.3;cursor:pointer}
+.wg-eblock:hover{opacity:.82}
+.wg-etitle{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wg-eperson{font-size:9px;opacity:.85}
+
+/* BOTTOM NAV */
+.bottom-nav{height:var(--bottom-nav);background:var(--surface);border-top:.5px solid var(--border);
+  display:flex;flex-shrink:0}
+.bottom-nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;cursor:pointer;background:none;border:none;color:var(--text3);font-family:var(--font);
+  font-size:10px;transition:color .15s;padding:0}
+.bottom-nav-btn.active{color:var(--blue)}
+.bottom-nav-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+@media(min-width:600px){.bottom-nav{display:none}}
+
+/* SIDEBAR DRAWER */
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;display:none}
+.drawer-overlay.open{display:block}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:280px;background:var(--surface);
+  z-index:101;transform:translateX(100%);transition:transform .25s ease;
+  display:flex;flex-direction:column;overflow-y:auto}
+.drawer.open{transform:translateX(0)}
+.drawer-header{padding:1rem;border-bottom:.5px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.drawer-header h2{font-size:15px;font-weight:500}
+.drawer-close{background:none;border:none;cursor:pointer;font-size:20px;color:var(--text2)}
+.drawer-body{padding:1rem;flex:1}
+.drawer-section{margin-bottom:1.5rem}
+.drawer-section h3{font-size:11px;font-weight:500;color:var(--text2);
+  text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.member-chip{display:flex;align-items:center;gap:8px;padding:8px;
+  border-radius:var(--radius-sm);cursor:pointer;transition:background .1s}
+.member-chip:hover{background:var(--surface2)}
+.member-chip.inactive{opacity:.4}
+.mdot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.mname{font-size:14px;flex:1}
+.mdel{background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;
+  padding:0 2px;line-height:1}
+.mdel:hover{color:#A32D2D}
+.add-row{display:flex;gap:8px;margin-top:8px}
+.add-row input{flex:1}
+.swatches{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.swatch{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid transparent}
+.swatch:hover{opacity:.8}
+.swatch.sel{border-color:var(--text)}
+
+/* MODALS */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;
+  display:none;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+@media(min-width:600px){.modal-overlay{align-items:center}}
+.modal{background:var(--surface);border-radius:var(--radius) var(--radius) 0 0;
+  padding:1.25rem;width:100%;max-width:480px;max-height:90vh;overflow-y:auto}
+@media(min-width:600px){.modal{border-radius:var(--radius)}}
+.modal-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;
+  margin:0 auto 1rem}
+@media(min-width:600px){.modal-handle{display:none}}
+.modal h2{font-size:15px;font-weight:500;margin-bottom:1rem;
+  display:flex;justify-content:space-between;align-items:center}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2)}
 .time-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.mactions{display:flex;gap:8px;justify-content:space-between;margin-top:1.1rem;padding-top:1.1rem;border-top:.5px solid var(--border)}
-input,select,textarea,button{font-family:var(--font);font-size:13px;color:var(--text);
-  background:var(--surface2);border:.5px solid var(--border2);border-radius:var(--radius-sm);padding:7px 9px;outline:none}
+.mactions{display:flex;gap:8px;justify-content:space-between;
+  margin-top:1rem;padding-top:1rem;border-top:.5px solid var(--border)}
+
+/* FAB */
+.fab{position:fixed;right:1rem;bottom:calc(var(--bottom-nav) + 1rem);
+  width:52px;height:52px;border-radius:50%;background:var(--blue);color:#fff;
+  border:none;cursor:pointer;font-size:26px;display:flex;align-items:center;
+  justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,.2);z-index:50;
+  transition:transform .15s}
+.fab:hover{transform:scale(1.07)}
+@media(min-width:600px){.fab{display:none}}
+
+/* SHARED INPUTS */
+input,select,textarea,button{font-family:var(--font);font-size:14px;color:var(--text);
+  background:var(--surface2);border:.5px solid var(--border2);border-radius:var(--radius-sm);
+  padding:8px 10px;outline:none}
 input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(24,95,165,.15)}
 button{cursor:pointer;background:var(--surface);transition:background .1s,transform .1s}
 button:hover{background:var(--surface2)}
-button:active{transform:scale(.98)}
 button.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
 button.primary:hover{background:#0C447C}
 button.danger{background:#FCEBEB;color:#791F1F;border-color:#F09595}
-textarea{width:100%;min-height:56px;resize:vertical}
+textarea{width:100%;min-height:60px;resize:vertical}
 .field{margin-bottom:10px}
 .field label{font-size:12px;color:var(--text2);display:block;margin-bottom:4px}
 .field input,.field select,.field textarea{width:100%}
@@ -120,80 +216,132 @@ textarea{width:100%;min-height:56px;resize:vertical}
 </head>
 <body>
 
-<!-- LADDNING -->
-<div class="fullscreen" id="screen-loading">
-  <div class="center-box">
-    <div class="spinner"></div>
-    <p style="color:var(--text2);font-size:14px">Ansluter till Firebase...</p>
+<!-- LOADING -->
+<div class="screen active" id="screen-loading">
+  <div class="center-wrap">
+    <div class="center-box">
+      <div class="spinner"></div>
+      <p>Ansluter till Firebase...</p>
+    </div>
   </div>
 </div>
 
 <!-- LOGIN -->
-<div class="fullscreen" id="screen-login" style="display:none">
-  <div class="center-box">
-    <div class="icon">📅</div>
-    <h1>Familjekalender</h1>
-    <p>Ange familjens lösenord.<br>
-      <span style="font-size:11px;color:var(--text3)">Standardlösenord: familj123</span></p>
-    <div class="field">
-      <input type="password" id="pw-input" placeholder="Lösenord" style="width:100%;margin-bottom:8px" />
+<div class="screen" id="screen-login">
+  <div class="center-wrap">
+    <div class="center-box">
+      <div class="icon">📅</div>
+      <h1>Familjekalender</h1>
+      <p>Ange familjens lösenord.<br>
+        <span style="font-size:11px;color:var(--text3)">Standardlösenord: familj123</span></p>
+      <div class="field">
+        <input type="password" id="pw-input" placeholder="Lösenord" style="width:100%;margin-bottom:8px;font-size:16px" />
+      </div>
+      <button class="primary" style="width:100%;padding:10px" onclick="tryLogin()">Logga in</button>
+      <div class="msg err" id="login-err"></div>
     </div>
-    <button class="primary" style="width:100%" onclick="tryLogin()">Logga in</button>
-    <div class="msg err" id="login-err"></div>
   </div>
 </div>
 
-<!-- FEL -->
-<div class="fullscreen" id="screen-error" style="display:none">
-  <div class="center-box">
-    <div class="icon">⚠️</div>
-    <h1>Kunde inte ansluta</h1>
-    <p id="error-msg">Ett fel uppstod vid anslutning till Firebase.</p>
-    <button class="primary" style="width:100%;margin-top:1rem" onclick="location.reload()">Försök igen</button>
+<!-- ERROR -->
+<div class="screen" id="screen-error">
+  <div class="center-wrap">
+    <div class="center-box">
+      <div class="icon">⚠️</div>
+      <h1>Anslutningsfel</h1>
+      <p id="error-msg">Kunde inte ansluta till Firebase.</p>
+      <button class="primary" style="width:100%;margin-top:1rem" onclick="location.reload()">Försök igen</button>
+    </div>
   </div>
 </div>
 
 <!-- APP -->
-<div id="app">
+<div class="screen" id="screen-app">
+
+  <!-- TOP BAR -->
   <div class="topbar">
-    <h1>📅 Familjekalender</h1>
-    <button class="nav-btn" onclick="prevWeek()">&#8592;</button>
-    <span class="week-label" id="week-label"></span>
-    <button class="nav-btn" onclick="nextWeek()">&#8594;</button>
-    <button class="nav-btn" onclick="goToday()">Idag</button>
-    <div class="sync-dot" id="sync-dot" title="Firebase-anslutning"></div>
-    <button class="nav-btn" onclick="openSettings()">⚙ Inställningar</button>
-    <button class="nav-btn" onclick="logout()">Logga ut</button>
+    <h1 id="topbar-title">📅 Familjekalender</h1>
+    <div class="sync-dot" id="sync-dot" title="Firebase-status"></div>
+    <button class="topbar-btn" onclick="openDrawer()" title="Inställningar" style="font-size:20px">☰</button>
   </div>
-  <div class="main">
-    <div class="sidebar">
-      <div>
-        <h2 style="margin-bottom:8px">Personer</h2>
-        <div id="member-list"></div>
-        <div class="add-row" style="margin-top:8px">
-          <input type="text" id="new-name" placeholder="Nytt namn" maxlength="20" />
-          <button onclick="addMember()">+</button>
-        </div>
+
+  <!-- WEEK NAV -->
+  <div class="week-nav">
+    <button class="week-nav-btn" onclick="prevPeriod()">&#8592;</button>
+    <span class="week-label" id="week-label"></span>
+    <button class="week-nav-btn" onclick="nextPeriod()">&#8594;</button>
+    <button class="week-nav-btn today" onclick="goToday()">Idag</button>
+  </div>
+
+  <!-- DAY STRIP (mobil) -->
+  <div class="day-strip" id="day-strip"></div>
+
+  <!-- CALENDAR SCROLL -->
+  <div class="cal-scroll" id="cal-scroll">
+    <!-- DAY VIEW (mobil) -->
+    <div class="day-view" id="day-view"></div>
+    <!-- WEEK VIEW (desktop) -->
+    <div class="week-view" id="week-view"></div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <button class="bottom-nav-btn active" id="nav-cal" onclick="switchTab('cal')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Kalender
+    </button>
+    <button class="bottom-nav-btn" id="nav-people" onclick="switchTab('people')">
+      <svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg>
+      Personer
+    </button>
+    <button class="bottom-nav-btn" id="nav-settings" onclick="switchTab('settings')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Inställningar
+    </button>
+  </div>
+
+  <!-- FAB (lägg till händelse, mobil) -->
+  <button class="fab" onclick="openNewEv(selectedDate, 9)" title="Ny händelse">+</button>
+</div>
+
+<!-- DRAWER (sidopanel) -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <h2>Meny</h2>
+    <button class="drawer-close" onclick="closeDrawer()">&#x2715;</button>
+  </div>
+  <div class="drawer-body">
+    <div class="drawer-section" id="drawer-people-section">
+      <h3>Personer</h3>
+      <div id="drawer-member-list"></div>
+      <div class="add-row">
+        <input type="text" id="new-name" placeholder="Nytt namn" maxlength="20" />
+        <button onclick="addMember()" style="padding:8px 12px">+</button>
       </div>
-      <div>
-        <h2 style="margin-bottom:6px">Välj färg</h2>
+      <div style="margin-top:10px">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:6px">Välj färg för ny person</div>
         <div class="swatches" id="swatches"></div>
       </div>
-      <div>
-        <h2 style="margin-bottom:8px">Förklaring</h2>
-        <div id="legend"></div>
-      </div>
     </div>
-    <div class="cal-wrap">
-      <div class="week-grid" id="week-grid"></div>
+    <div class="drawer-section">
+      <h3>Lösenord</h3>
+      <div class="field"><input type="password" id="new-pw" placeholder="Nytt lösenord" style="width:100%" /></div>
+      <div class="field"><input type="password" id="new-pw2" placeholder="Bekräfta" style="width:100%" /></div>
+      <div class="msg" id="pw-msg"></div>
+      <button class="primary" style="width:100%" onclick="savePw()">Spara lösenord</button>
+    </div>
+    <div class="drawer-section">
+      <button onclick="logout()" style="width:100%;padding:10px">Logga ut</button>
     </div>
   </div>
 </div>
 
 <!-- EVENT MODAL -->
-<div class="overlay" id="ev-overlay">
+<div class="modal-overlay" id="ev-overlay">
   <div class="modal">
-    <h2 id="ev-hdr">Ny händelse <button class="close-btn" onclick="closeEv()">&#x2715;</button></h2>
+    <div class="modal-handle"></div>
+    <h2 id="ev-hdr">Ny händelse <button class="modal-close" onclick="closeEv()">&#x2715;</button></h2>
     <div class="field"><label>Titel</label><input type="text" id="ev-title" placeholder="t.ex. Fotbollsträning" /></div>
     <div class="field"><label>Person</label><select id="ev-person"></select></div>
     <div class="field"><label>Datum</label><input type="date" id="ev-date" /></div>
@@ -212,31 +360,16 @@ textarea{width:100%;min-height:56px;resize:vertical}
   </div>
 </div>
 
-<!-- SETTINGS MODAL -->
-<div class="overlay" id="set-overlay">
-  <div class="modal">
-    <h2>Inställningar <button class="close-btn" onclick="closeSettings()">&#x2715;</button></h2>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:1rem">Lösenordet sparas till Firebase och gäller på alla enheter.</p>
-    <div class="field"><label>Nytt lösenord</label><input type="password" id="new-pw" placeholder="Minst 4 tecken" /></div>
-    <div class="field"><label>Bekräfta</label><input type="password" id="new-pw2" placeholder="Upprepa" /></div>
-    <div class="msg" id="pw-msg"></div>
-    <div class="mactions">
-      <div></div>
-      <div style="display:flex;gap:8px">
-        <button onclick="closeSettings()">Stäng</button>
-        <button class="primary" onclick="savePw()">Spara lösenord</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
 const PALETTE    = ['#E05A5A','#E07B2A','#D4AC0D','#4CAF50','#2196F3','#9C27B0','#00BCD4','#FF5BA3','#3B8F5A','#5C6BC0'];
-const DAYS       = ['Sön','Mån','Tis','Ons','Tor','Fre','Lör'];
+const DAYS_SHORT = ['Sön','Mån','Tis','Ons','Tor','Fre','Lör'];
+const DAYS_LONG  = ['Söndag','Måndag','Tisdag','Onsdag','Torsdag','Fredag','Lördag'];
+const MONTHS     = ['jan','feb','mar','apr','maj','jun','jul','aug','sep','okt','nov','dec'];
 const HOURS      = Array.from({length:24},(_,i)=>i);
 const DEFAULT_PW = 'familj123';
+const isMobile   = () => window.innerWidth < 600;
 
 let db, dbRef;
 let members = [], events = {}, nextMemberId = 1;
@@ -244,217 +377,298 @@ let localPw = DEFAULT_PW;
 let selectedColor = PALETTE[0];
 let editingEvId = null;
 let currentWeekStart = getMonday(new Date());
+let selectedDate = isoDate(new Date());
 let activeMembers = new Set();
-let appStarted = false;
+let currentTab = 'cal';
 
-function show(id) {
-  ['screen-loading','screen-login','screen-error','app'].forEach(s => {
-    const el = document.getElementById(s);
-    if (el) el.style.display = s === id ? (s === 'app' ? 'flex' : 'flex') : 'none';
-  });
+/* SCREENS */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
 }
 
+/* FIREBASE */
 function initFirebase() {
   try {
     firebase.initializeApp(FIREBASE_CONFIG);
     db    = firebase.database();
     dbRef = db.ref('familjekalender');
 
-    // Timeout — om Firebase inte svarar inom 8 sekunder, visa inloggning ändå
     const timeout = setTimeout(() => {
-      if (!appStarted) {
-        console.warn('Firebase timeout — visar login ändå');
-        localPw = DEFAULT_PW;
-        members = [];
-        events  = {};
-        appStarted = true;
-        show('screen-login');
-      }
+      localPw = DEFAULT_PW; members = []; events = {};
+      showScreen('screen-login');
     }, 8000);
 
-    // Anslutningsstatus
     db.ref('.info/connected').on('value', snap => {
-      const live = !!snap.val();
       const dot = document.getElementById('sync-dot');
-      if (dot) dot.classList.toggle('live', live);
+      if (dot) dot.classList.toggle('live', !!snap.val());
     });
 
-    // Lyssna på data — triggar även när databasen är tom (null)
     dbRef.once('value').then(snap => {
       clearTimeout(timeout);
       const d = snap.val();
-
       if (!d) {
-        // Databasen är tom — skapa startdata
-        const seed = ['Mamma','Pappa','Ella','Noah'].map((n,i) => ({id:i+1,name:n,color:PALETTE[i]}));
+        const seed = ['Mamma','Pappa','Ella','Noah'].map((n,i)=>({id:i+1,name:n,color:PALETTE[i]}));
         nextMemberId = seed.length + 1;
-        dbRef.set({
-          members: seed,
-          events: {},
-          password: DEFAULT_PW,
-          nextMemberId
-        }).then(() => {
-          members  = seed;
-          localPw  = DEFAULT_PW;
-          activeMembers = new Set(members.map(m => m.id));
-          appStarted = true;
-          show('screen-login');
-          // Starta realtidslyssning
-          startRealtimeListener();
+        dbRef.set({ members:seed, events:{}, password:DEFAULT_PW, nextMemberId }).then(() => {
+          members = seed; localPw = DEFAULT_PW;
+          activeMembers = new Set(members.map(m=>m.id));
+          showScreen('screen-login');
+          startListener();
         });
       } else {
-        members      = d.members      || [];
-        events       = d.events       || {};
-        nextMemberId = d.nextMemberId || members.length + 1;
-        localPw      = d.password     || DEFAULT_PW;
-        activeMembers = new Set(members.map(m => m.id));
-        appStarted = true;
-        show('screen-login');
-        // Starta realtidslyssning
-        startRealtimeListener();
+        members = d.members||[]; events = d.events||{};
+        nextMemberId = d.nextMemberId||members.length+1;
+        localPw = d.password||DEFAULT_PW;
+        activeMembers = new Set(members.map(m=>m.id));
+        showScreen('screen-login');
+        startListener();
       }
     }).catch(err => {
       clearTimeout(timeout);
-      console.error('Firebase fel:', err);
       document.getElementById('error-msg').textContent = 'Fel: ' + err.message;
-      show('screen-error');
+      showScreen('screen-error');
     });
-
   } catch(e) {
-    console.error(e);
     document.getElementById('error-msg').textContent = 'Konfigurationsfel: ' + e.message;
-    show('screen-error');
+    showScreen('screen-error');
   }
 }
 
-function startRealtimeListener() {
+function startListener() {
   dbRef.on('value', snap => {
-    const d = snap.val();
-    if (!d) return;
-    members      = d.members      || [];
-    events       = d.events       || {};
-    nextMemberId = d.nextMemberId || members.length + 1;
-    localPw      = d.password     || DEFAULT_PW;
-    if (document.getElementById('app').style.display === 'flex') renderAll();
+    const d = snap.val(); if(!d) return;
+    members = d.members||[]; events = d.events||{};
+    nextMemberId = d.nextMemberId||members.length+1;
+    localPw = d.password||DEFAULT_PW;
+    if (document.getElementById('screen-app').classList.contains('active')) renderAll();
   });
 }
-
-function push(obj) { if (dbRef) dbRef.update(obj); }
+function push(obj) { if(dbRef) dbRef.update(obj); }
 
 /* AUTH */
 function tryLogin() {
   if (document.getElementById('pw-input').value === localPw) {
-    show('app');
+    showScreen('screen-app');
     document.getElementById('pw-input').value = '';
     document.getElementById('login-err').textContent = '';
-    activeMembers = new Set(members.map(m => m.id));
+    activeMembers = new Set(members.map(m=>m.id));
     renderAll();
   } else {
     document.getElementById('login-err').textContent = 'Fel lösenord – försök igen.';
   }
 }
-function logout() { show('screen-login'); }
+function logout() { closeDrawer(); showScreen('screen-login'); }
 
-/* INSTÄLLNINGAR */
-function openSettings()  { document.getElementById('set-overlay').classList.add('open'); }
-function closeSettings() {
-  document.getElementById('set-overlay').classList.remove('open');
-  document.getElementById('new-pw').value = document.getElementById('new-pw2').value = '';
-  document.getElementById('pw-msg').textContent = '';
-}
+/* PASSWORD */
 function savePw() {
-  const p1 = document.getElementById('new-pw').value;
-  const p2 = document.getElementById('new-pw2').value;
-  const el = document.getElementById('pw-msg');
-  el.className = 'msg err';
-  if (!p1)         { el.textContent='Ange ett nytt lösenord.'; return; }
-  if (p1 !== p2)   { el.textContent='Lösenorden matchar inte.'; return; }
-  if (p1.length<4) { el.textContent='Minst 4 tecken krävs.'; return; }
-  push({ password: p1 });
-  localPw = p1;
-  el.className = 'msg ok';
-  el.textContent = '✓ Sparat! Gäller nu på alla enheter.';
-  setTimeout(closeSettings, 1800);
+  const p1=document.getElementById('new-pw').value;
+  const p2=document.getElementById('new-pw2').value;
+  const el=document.getElementById('pw-msg');
+  el.className='msg err';
+  if(!p1){el.textContent='Ange ett lösenord.';return;}
+  if(p1!==p2){el.textContent='Lösenorden matchar inte.';return;}
+  if(p1.length<4){el.textContent='Minst 4 tecken.';return;}
+  push({password:p1}); localPw=p1;
+  el.className='msg ok'; el.textContent='✓ Sparat!';
+  document.getElementById('new-pw').value=document.getElementById('new-pw2').value='';
+  setTimeout(()=>{el.textContent='';},2500);
 }
 
-/* PERSONER */
+/* DRAWER */
+function openDrawer() {
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawer-overlay').classList.add('open');
+  renderDrawer();
+}
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawer-overlay').classList.remove('open');
+}
+
+/* TABS */
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.bottom-nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('nav-'+tab).classList.add('active');
+  if (tab==='cal') { openDrawer(); closeDrawer(); renderAll(); }
+  else if (tab==='people') openDrawer();
+  else if (tab==='settings') openDrawer();
+}
+
+/* MEMBERS */
 function addMember() {
-  const name = document.getElementById('new-name').value.trim();
-  if (!name) return;
-  const used  = members.map(m => m.color);
-  const color = PALETTE.find(c => !used.includes(c)) || selectedColor;
-  const id    = nextMemberId++;
-  members.push({ id, name, color });
-  activeMembers.add(id);
-  document.getElementById('new-name').value = '';
-  push({ members, nextMemberId });
+  const name=document.getElementById('new-name').value.trim(); if(!name) return;
+  const used=members.map(m=>m.color);
+  const color=PALETTE.find(c=>!used.includes(c))||selectedColor;
+  const id=nextMemberId++;
+  members.push({id,name,color}); activeMembers.add(id);
+  document.getElementById('new-name').value='';
+  push({members,nextMemberId});
 }
 function deleteMember(id) {
-  if (!confirm('Ta bort person och alla deras händelser?')) return;
-  members = members.filter(m => m.id !== id);
-  activeMembers.delete(id);
-  Object.keys(events).forEach(k => { if (events[k].memberId===id) delete events[k]; });
-  push({ members, events, nextMemberId });
+  if(!confirm('Ta bort person och alla deras händelser?')) return;
+  members=members.filter(m=>m.id!==id); activeMembers.delete(id);
+  Object.keys(events).forEach(k=>{if(events[k].memberId===id)delete events[k];});
+  push({members,events,nextMemberId});
 }
 function toggleMember(id) {
-  activeMembers.has(id) ? activeMembers.delete(id) : activeMembers.add(id);
-  renderSidebar(); renderCalendar();
+  activeMembers.has(id)?activeMembers.delete(id):activeMembers.add(id);
+  renderAll();
 }
 
-/* VECKONAVIGERING */
+/* DATE HELPERS */
 function getMonday(d) {
-  const dt=new Date(d), day=dt.getDay();
+  const dt=new Date(d),day=dt.getDay();
   dt.setDate(dt.getDate()+(day===0?-6:1-day)); dt.setHours(0,0,0,0); return dt;
 }
-function prevWeek() { currentWeekStart.setDate(currentWeekStart.getDate()-7); renderCalendar(); }
-function nextWeek() { currentWeekStart.setDate(currentWeekStart.getDate()+7); renderCalendar(); }
-function goToday()  { currentWeekStart=getMonday(new Date()); renderCalendar(); }
-function weekDays() {
-  return Array.from({length:7},(_,i)=>{ const d=new Date(currentWeekStart); d.setDate(d.getDate()+i); return d; });
-}
 function isoDate(d) { return d.toISOString().slice(0,10); }
-function isToday(d) { return d.toDateString()===new Date().toDateString(); }
-
-/* RENDER */
-function renderAll() { renderSidebar(); renderCalendar(); }
-
-function renderSidebar() {
-  document.getElementById('member-list').innerHTML = members.length===0
-    ? '<div style="font-size:12px;color:var(--text3)">Inga personer ännu</div>'
-    : members.map(m=>`
-        <div class="member-chip ${activeMembers.has(m.id)?'':'inactive'}" onclick="toggleMember(${m.id})">
-          <span class="mdot" style="background:${m.color}"></span>
-          <span class="mname">${esc(m.name)}</span>
-          <button class="mdel" onclick="event.stopPropagation();deleteMember(${m.id})">&#x2715;</button>
-        </div>`).join('');
-  document.getElementById('swatches').innerHTML = PALETTE.map(c=>`
-    <div class="swatch ${c===selectedColor?'sel':''}" style="background:${c}" onclick="selectColor('${c}')"></div>`).join('');
-  document.getElementById('legend').innerHTML = members.length===0
-    ? '<div style="font-size:12px;color:var(--text3)">Lägg till personer</div>'
-    : members.map(m=>`
-        <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;font-size:13px">
-          <span style="width:10px;height:10px;border-radius:50%;background:${m.color};flex-shrink:0"></span>
-          ${esc(m.name)}</div>`).join('');
+function isToday(d) { return isoDate(d)===isoDate(new Date()); }
+function weekDays() {
+  return Array.from({length:7},(_,i)=>{const d=new Date(currentWeekStart);d.setDate(d.getDate()+i);return d;});
 }
-function selectColor(c) { selectedColor=c; renderSidebar(); }
 
-function renderCalendar() {
-  const days=weekDays(), first=days[0], last=days[6];
-  document.getElementById('week-label').textContent =
-    `${first.getDate()} ${first.toLocaleDateString('sv-SE',{month:'short'})} – ${last.getDate()} ${last.toLocaleDateString('sv-SE',{month:'long',year:'numeric'})}`;
-  const grid=document.getElementById('week-grid');
-  let html='<div class="cal-corner"></div>';
+/* NAV */
+function prevPeriod() {
+  if(isMobile()){
+    const d=new Date(selectedDate); d.setDate(d.getDate()-1); selectedDate=isoDate(d);
+    currentWeekStart=getMonday(d);
+  } else {
+    currentWeekStart.setDate(currentWeekStart.getDate()-7);
+  }
+  renderAll();
+}
+function nextPeriod() {
+  if(isMobile()){
+    const d=new Date(selectedDate); d.setDate(d.getDate()+1); selectedDate=isoDate(d);
+    currentWeekStart=getMonday(d);
+  } else {
+    currentWeekStart.setDate(currentWeekStart.getDate()+7);
+  }
+  renderAll();
+}
+function goToday() {
+  selectedDate=isoDate(new Date());
+  currentWeekStart=getMonday(new Date());
+  renderAll();
+}
+
+/* RENDER ALL */
+function renderAll() {
+  if(isMobile()) {
+    renderDayStrip();
+    renderDayView();
+    // Update week label to show selected day
+    const d=new Date(selectedDate);
+    document.getElementById('week-label').textContent =
+      `${DAYS_LONG[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+  } else {
+    document.getElementById('day-strip').style.display='none';
+    renderWeekView();
+    const days=weekDays(), first=days[0], last=days[6];
+    document.getElementById('week-label').textContent =
+      `${first.getDate()} ${MONTHS[first.getMonth()]} – ${last.getDate()} ${MONTHS[last.getMonth()]} ${last.getFullYear()}`;
+  }
+  renderDrawer();
+}
+
+/* DAY STRIP */
+function renderDayStrip() {
+  const strip=document.getElementById('day-strip');
+  strip.style.display='flex';
+  const days=weekDays();
+  strip.innerHTML=days.map(d=>{
+    const ds=isoDate(d);
+    const dayEvents=Object.values(events).filter(e=>e.date===ds&&activeMembers.has(e.memberId));
+    const dots=dayEvents.slice(0,4).map(e=>{
+      const m=members.find(x=>x.id===e.memberId);
+      return m?`<span class="day-dot" style="background:${m.color}"></span>`:'';
+    }).join('');
+    const active=ds===selectedDate?'active':'';
+    const todayCls=isToday(d)?'today-num':'';
+    return `<div class="day-pill ${active}" onclick="selectDay('${ds}')">
+      <div class="day-pill-name">${DAYS_SHORT[d.getDay()]}</div>
+      <div class="day-pill-num ${todayCls}">${d.getDate()}</div>
+      <div class="day-dot-row">${dots}</div>
+    </div>`;
+  }).join('');
+}
+
+function selectDay(ds) {
+  selectedDate=ds;
+  currentWeekStart=getMonday(new Date(ds));
+  renderAll();
+}
+
+/* DAY VIEW */
+function renderDayView() {
+  const view=document.getElementById('day-view');
+  view.style.display='flex';
+  document.getElementById('week-view').style.display='none';
+  const dayEvs=Object.values(events)
+    .filter(e=>e.date===selectedDate&&activeMembers.has(e.memberId))
+    .sort((a,b)=>a.start.localeCompare(b.start));
+
+  let html='';
+  HOURS.forEach(h=>{
+    const hStr=String(h).padStart(2,'0')+':00';
+    html+=`<div class="hour-row">
+      <div class="hour-label">${String(h).padStart(2,'0')}</div>
+      <div class="hour-col" onclick="openNewEv('${selectedDate}',${h})"></div>
+    </div>`;
+  });
+  view.innerHTML=html;
+
+  // Place events
+  dayEvs.forEach(ev=>{
+    const m=members.find(x=>x.id===ev.memberId); if(!m) return;
+    const [sh,sm]=ev.start.split(':').map(Number);
+    const [eh,em]=ev.end.split(':').map(Number);
+    const dur=Math.max(30,(eh*60+em)-(sh*60+sm));
+    const rows=view.querySelectorAll('.hour-row');
+    const col=rows[sh]?.querySelector('.hour-col'); if(!col) return;
+    const b=document.createElement('div');
+    b.className='ev-block';
+    b.style.cssText=`top:${(sm/52)*100}%;height:${(dur/60)*52-3}px;background:${m.color}`;
+    b.innerHTML=`<div class="ev-block-title">${esc(ev.title)}</div>
+      <div class="ev-block-person">${esc(m.name)} · ${ev.start}–${ev.end}</div>`;
+    b.onclick=e=>{e.stopPropagation();openEditEv(ev.id);};
+    col.style.position='relative';
+    col.appendChild(b);
+  });
+
+  // Scroll to 7am
+  const scroll=document.getElementById('cal-scroll');
+  const rows=view.querySelectorAll('.hour-row');
+  if(rows[7]) setTimeout(()=>{
+    scroll.scrollTop=rows[7].offsetTop-60;
+  },50);
+}
+
+/* WEEK VIEW (desktop) */
+function renderWeekView() {
+  const view=document.getElementById('week-view');
+  view.style.display='block';
+  document.getElementById('day-view').style.display='none';
+  const days=weekDays();
+  const grid=document.createElement('div');
+  grid.className='week-grid';
+
+  let html='<div class="wg-corner"></div>';
   days.forEach(d=>{
-    const n=isToday(d)?`<div class="dnum-today">${d.getDate()}</div>`:`<div class="dnum">${d.getDate()}</div>`;
-    html+=`<div class="day-hdr"><div class="dname">${DAYS[d.getDay()]}</div>${n}</div>`;
+    const n=isToday(d)?`<div class="wg-dnum-today">${d.getDate()}</div>`:`<div class="wg-dnum">${d.getDate()}</div>`;
+    html+=`<div class="wg-dayhdr"><div class="wg-dname">${DAYS_SHORT[d.getDay()]}</div>${n}</div>`;
   });
   HOURS.forEach(h=>{
-    html+=`<div class="tlabel">${String(h).padStart(2,'0')}:00</div>`;
+    html+=`<div class="wg-tlabel">${String(h).padStart(2,'0')}:00</div>`;
     days.forEach(d=>{
-      html+=`<div class="hcell" data-date="${isoDate(d)}" data-hour="${h}" onclick="openNewEv('${isoDate(d)}',${h})"></div>`;
+      html+=`<div class="wg-hcell" data-date="${isoDate(d)}" data-hour="${h}" onclick="openNewEv('${isoDate(d)}',${h})"></div>`;
     });
   });
   grid.innerHTML=html;
+  view.innerHTML='';
+  view.appendChild(grid);
+
   const visible=new Set(days.map(isoDate));
   Object.values(events).forEach(ev=>{
     if(!visible.has(ev.date)) return;
@@ -466,33 +680,53 @@ function renderCalendar() {
     const cell=grid.querySelector(`[data-date="${ev.date}"][data-hour="${sh}"]`);
     if(!cell) return;
     const b=document.createElement('div');
-    b.className='eblock';
+    b.className='wg-eblock';
     b.style.cssText=`top:${(sm/60)*44}px;height:${(dur/60)*44-3}px;background:${m.color}`;
-    b.innerHTML=`<div class="etitle">${esc(ev.title)}</div><div class="eperson">${esc(m.name)}</div>`;
+    b.innerHTML=`<div class="wg-etitle">${esc(ev.title)}</div><div class="wg-eperson">${esc(m.name)}</div>`;
     b.onclick=e=>{e.stopPropagation();openEditEv(ev.id);};
     cell.appendChild(b);
   });
+
+  // Scroll to 7am
+  setTimeout(()=>{
+    const cell=grid.querySelector('[data-hour="7"]');
+    if(cell) document.getElementById('cal-scroll').scrollTop=cell.offsetTop-60;
+  },50);
 }
 
-/* HÄNDELSEMODAL */
-function openNewEv(dateStr,hour) {
+/* DRAWER RENDER */
+function renderDrawer() {
+  document.getElementById('drawer-member-list').innerHTML = members.length===0
+    ? '<div style="font-size:13px;color:var(--text3);margin-bottom:8px">Inga personer ännu</div>'
+    : members.map(m=>`
+        <div class="member-chip ${activeMembers.has(m.id)?'':'inactive'}" onclick="toggleMember(${m.id})">
+          <span class="mdot" style="background:${m.color}"></span>
+          <span class="mname">${esc(m.name)}</span>
+          <button class="mdel" onclick="event.stopPropagation();deleteMember(${m.id})">&#x2715;</button>
+        </div>`).join('');
+  document.getElementById('swatches').innerHTML=PALETTE.map(c=>`
+    <div class="swatch ${c===selectedColor?'sel':''}" style="background:${c}" onclick="selectedColor='${c}';renderDrawer()"></div>`).join('');
+}
+
+/* EVENT MODAL */
+function openNewEv(dateStr, hour) {
   if(members.length===0){alert('Lägg till minst en person först!');return;}
   editingEvId=null;
-  document.getElementById('ev-hdr').innerHTML='Ny händelse <button class="close-btn" onclick="closeEv()">&#x2715;</button>';
+  document.getElementById('ev-hdr').innerHTML='Ny händelse <button class="modal-close" onclick="closeEv()">&#x2715;</button>';
   document.getElementById('ev-title').value='';
-  document.getElementById('ev-date').value=dateStr;
-  document.getElementById('ev-start').value=`${String(hour).padStart(2,'0')}:00`;
-  document.getElementById('ev-end').value=`${String(Math.min(hour+1,23)).padStart(2,'0')}:00`;
+  document.getElementById('ev-date').value=dateStr||selectedDate;
+  document.getElementById('ev-start').value=`${String(hour||9).padStart(2,'0')}:00`;
+  document.getElementById('ev-end').value=`${String(Math.min((hour||9)+1,23)).padStart(2,'0')}:00`;
   document.getElementById('ev-note').value='';
   document.getElementById('ev-del-btn').style.display='none';
   fillPersonSel(null);
   document.getElementById('ev-overlay').classList.add('open');
-  setTimeout(()=>document.getElementById('ev-title').focus(),80);
+  setTimeout(()=>document.getElementById('ev-title').focus(),100);
 }
 function openEditEv(id) {
-  const ev=events[id]; if(!ev)return;
+  const ev=events[id]; if(!ev) return;
   editingEvId=id;
-  document.getElementById('ev-hdr').innerHTML='Redigera händelse <button class="close-btn" onclick="closeEv()">&#x2715;</button>';
+  document.getElementById('ev-hdr').innerHTML='Redigera <button class="modal-close" onclick="closeEv()">&#x2715;</button>';
   document.getElementById('ev-title').value=ev.title;
   document.getElementById('ev-date').value=ev.date;
   document.getElementById('ev-start').value=ev.start;
@@ -519,23 +753,20 @@ function saveEv(){
   if(start>=end){alert('Sluttid måste vara efter starttid.');return;}
   const id=editingEvId||`ev_${Date.now()}`;
   events[id]={id,title,memberId,date,start,end,note};
-  push({events});
-  closeEv();
+  push({events}); closeEv();
 }
 function deleteEv(){
   if(!confirm('Ta bort händelsen?'))return;
-  delete events[editingEvId];
-  push({events});
-  closeEv();
+  delete events[editingEvId]; push({events}); closeEv();
 }
 
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
+/* EVENTS */
 document.getElementById('pw-input').addEventListener('keydown',e=>{if(e.key==='Enter')tryLogin();});
 document.getElementById('new-name').addEventListener('keydown',e=>{if(e.key==='Enter')addMember();});
 document.getElementById('ev-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('ev-overlay'))closeEv();});
-document.getElementById('set-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('set-overlay'))closeSettings();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeEv();closeSettings();}});
+window.addEventListener('resize',()=>renderAll());
 
 initFirebase();
 </script>
